@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>木叶音乐学员积分排行榜</title>
+<style>
+html,body{margin:0;padding:0;background:#111827;color:#f3f4f6;font-family:微软雅黑,sans-serif;}
+.box{max-width:600px;margin:0 auto;padding:15px;}
+h1{text-align:center;color:#fcd34d;font-size:22px;}
+.card{background:#1f2937;border-radius:12px;padding:15px;margin:10px 0;}
+input,select{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:0;}
+button{padding:10px;border-radius:8px;border:0;background:#f59e0b;color:#fff;font-weight:bold;margin:4px 0;}
+.row{display:flex;justify-content:space-between;padding:10px;border-bottom:#333 solid 1px;}
+.tit{font-weight:bold;color:#fcd34d;}
+.btn-add{background:#059669;}
+.btn-sub{background:#dc2626;}
+</style>
+</head>
+<body>
+<div class="box">
+    <h1>🎵 木叶音乐学员积分排行榜</h1>
+
+    <div class="card">
+        <div class="tit">创建 / 切换榜单</div>
+        <select id="boardSel"></select>
+        <input id="boardName" placeholder="输入新榜单名称">
+        <button onclick="createBoard()">新建榜单</button>
+    </div>
+
+    <div class="card">
+        <div class="tit">添加学员</div>
+        <input id="stuName" placeholder="学员姓名">
+        <input id="stuScore" type="number" value="0" placeholder="初始积分">
+        <button onclick="addStu()">加入榜单</button>
+    </div>
+
+    <div class="card">
+        <div class="tit">排行榜列表</div>
+        <div id="list"></div>
+    </div>
+</div>
+
+<script>
+// 核心：本地缓存多榜单，国内无接口、不跨域、不空白
+let key = "muye_yinyue_2026";
+let nowBoard = "一班";
+
+// 初始化榜单数据
+function getInitData(){
+    return {
+        "一班":[],
+        "二班":[],
+        "声乐班":[],
+        "吉他班":[]
+    };
+}
+
+// 读取全部榜单
+function getData(){
+    let d = localStorage.getItem(key);
+    return d ? JSON.parse(d) : getInitData();
+}
+
+// 保存
+function saveData(d){
+    localStorage.setItem(key, JSON.stringify(d));
+}
+
+// 渲染下拉
+function renderSel(){
+    let d = getData();
+    let sel = document.getElementById("boardSel");
+    sel.innerHTML = "";
+    Object.keys(d).forEach(name=>{
+        let op = document.createElement("option");
+        op.value = name;
+        op.innerText = name;
+        sel.appendChild(op);
+    });
+    sel.value = nowBoard;
+    sel.onchange = function(){
+        nowBoard = this.value;
+        renderList();
+    }
+}
+
+// 新建榜单
+function createBoard(){
+    let name = document.getElementById("boardName").value.trim();
+    if(!name) return alert("请输入榜单名");
+    let d = getData();
+    if(d[name]) return alert("榜单已存在");
+    d[name] = [];
+    saveData(d);
+    nowBoard = name;
+    renderSel();
+    renderList();
+    document.getElementById("boardName").value = "";
+}
+
+// 添加学员
+function addStu(){
+    let name = document.getElementById("stuName").value.trim();
+    let score = parseInt(document.getElementById("stuScore").value)||0;
+    if(!name) return alert("请输入姓名");
+    let d = getData();
+    let arr = d[nowBoard];
+    let has = arr.find(item=>item.name===name);
+    if(has) return alert("该学员已存在");
+    arr.push({name,score});
+    saveData(d);
+    document.getElementById("stuName").value = "";
+    renderList();
+}
+
+// 修改积分
+function changeScore(name,num){
+    let d = getData();
+    let arr = d[nowBoard];
+    let item = arr.find(x=>x.name===name);
+    if(!item)return;
+    item.score = Math.max(0, item.score + num);
+    saveData(d);
+    renderList();
+}
+
+// 渲染列表
+function renderList(){
+    let d = getData();
+    let arr = d[nowBoard] || [];
+    arr.sort((a,b)=>b.score - a.score);
+    let html = "";
+    if(arr.length===0){
+        html = '<div style="padding:15px;text-align:center;color:#999;">暂无学员</div>';
+    }
+    arr.forEach((item,i)=>{
+        html += `
+        <div class="row">
+            <span>${i+1}. ${item.name}</span>
+            <span>积分：${item.score}</span>
+            <span>
+                <button class="btn-add" onclick="changeScore('${item.name}',5)">+5</button>
+                <button class="btn-sub" onclick="changeScore('${item.name}',-5)">-5</button>
+            </span>
+        </div>
+        `;
+    });
+    document.getElementById("list").innerHTML = html;
+}
+
+// 页面载入自动执行
+window.onload = function(){
+    renderSel();
+    renderList();
+}
+</script>
+</body>
+</html>
